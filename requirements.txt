@@ -1,4 +1,1 @@
-pandas==1.4.4
-plotly==5.22.0
-streamlit==1.35.0
-yfinance==0.2.40
+feedparser==6.0.11

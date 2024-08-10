@@ -218,8 +218,8 @@ def main():
             st.info("No anomaly detected. Predicted return is based on historical average.")
         return data_returns.mean()
 
-   predicted_return = predict_next_return(data_returns, lorentzian_distances)
-   st.write(f"Predicted return for the next day: {predicted_return:.2f}%")
+    predicted_return = predict_next_return(data_returns, lorentzian_distances)
+    st.write(f"Predicted return for the next day: {predicted_return:.2f}%")
 
 
 if __name__ == "__main__":

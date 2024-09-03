@@ -79,13 +79,11 @@ def main():
     ]
     stock_symbol = st.sidebar.selectbox("Select Stock Symbol", stock_symbols)
     
-
     # Adding a new dropdown for interval selection
     interval = st.sidebar.selectbox(
         "Select Interval", 
         ["1m", "5m", "15m"]
     )
-
     
     interval_map = {
         "1m": "1m",
@@ -93,7 +91,7 @@ def main():
         "15m": "15m"
     }
     
-    #yf_period = period_map.get(period, "1d")
+    # yf_period and interval setup
     yf_period = "1d"
     yf_interval = interval_map.get(interval, "1d")  # Default to "1d" if not found
 
@@ -179,9 +177,13 @@ def main():
         marker=dict(color='yellow', size=10, symbol='x')
     ))
 
+    # Format date range
+    start_date = data.index.min().strftime('%Y-%m-%d')
+    end_date = data.index.max().strftime('%Y-%m-%d')
+
     # Update layout
     fig.update_layout(
-        title=f'{stock_symbol} Stock Price with Anomalies, Support, and Resistance ({interval})',
+        title=f'{stock_symbol} Stock Price from {start_date} to {end_date} with Anomalies, Support, and Resistance ({interval})',
         xaxis_title='Date',
         yaxis_title='Stock Price',
         xaxis_rangeslider_visible=False,  # Hide range slider

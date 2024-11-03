@@ -3,3 +3,4 @@ numpy==1.26.0
 pandas==2.2.2
 plotly==5.22.0
 yfinance==0.2.40
+fredapi==0.5.2

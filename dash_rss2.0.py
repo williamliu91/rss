@@ -320,11 +320,6 @@ data = load_data(ticker)
 # Get risk-free rate for Sharpe ratio calculation
 risk_free_rate = get_risk_free_rate()
 
-# Calculate Sharpe ratio if risk-free rate is available
-if risk_free_rate is not None:
-    data['Sharpe Ratio'] = calculate_sharpe_ratio(data, risk_free_rate)
-    add_sharpe = st.checkbox('Add Sharpe Ratio Subplot')
-
 # Time period selection
 periods = st.slider('Select Time Period (in days)', 30, 365, 180)
 
@@ -334,6 +329,11 @@ selected_emas = st.multiselect('Select EMA periods', [200, 50, 20], default=[200
 # Indicator plots selection
 add_rsi_plot = st.checkbox('Add RSI Subplot')
 add_macd_plot = st.checkbox('Add MACD Subplot')
+
+# Calculate Sharpe ratio if risk-free rate is available
+if risk_free_rate is not None:
+    data['Sharpe Ratio'] = calculate_sharpe_ratio(data, risk_free_rate)
+    add_sharpe = st.checkbox('Add Sharpe Ratio Subplot')
 
 st.subheader('Select Fundamental Metrics to Display')
 metrics = get_fundamental_metrics(ticker)

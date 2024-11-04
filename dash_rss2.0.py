@@ -362,19 +362,63 @@ if add_rsi_plot:
 if add_macd_plot:
     data_period = add_macd(data_period)
 
-# Calculate number of rows for subplots
-rows = 1 + add_rsi_plot + add_macd_plot + (add_sharpe if risk_free_rate is not None else 0)
+# Previous imports and functions remain the same...
 
-# Define ranges for plots
-price_range = [data_period['Close'].min() * 0.95, data_period['Close'].max() * 1.05]
-rsi_range = [0, 100]
-macd_range = [0, 0]
+# Function to calculate the price range
+def calculate_price_range(data):
+    if data.empty:
+        return [0, 1]
+    
+    # Convert Series min/max to float values
+    low_min = float(data['Low'].min())
+    close_min = float(data['Close'].min())
+    high_max = float(data['High'].max())
+    close_max = float(data['Close'].max())
+    
+    # Calculate bounds using float values
+    lower_bound = min(low_min, close_min) * 0.95
+    upper_bound = max(high_max, close_max) * 1.05
+    
+    return [lower_bound, upper_bound]
 
+# Generic function to calculate range for any specified column
+def calculate_custom_range(data, column_name):
+    if data.empty:
+        return [0, 1]
+    
+    # Calculate min and max for the specified column
+    column_min = float(data[column_name].min())
+    column_max = float(data[column_name].max())
+    
+    # Calculate bounds with a buffer
+    lower_bound = column_min * 0.95
+    upper_bound = column_max * 1.05
+    
+    return [lower_bound, upper_bound]
+
+# Calculate ranges for various metrics
+price_range = calculate_price_range(data_period)  # For price-specific range
+rsi_range = [0, 100]  # RSI is always 0-100
+
+# Calculate Sharpe Ratio range using the generic function
+sharpe_range = calculate_custom_range(data_period, 'Sharpe Ratio')
+
+# Update MACD range calculation
 if add_macd_plot:
+    macd_min = float(data_period['MACD'].min())
+    signal_min = float(data_period['Signal Line'].min())
+    macd_max = float(data_period['MACD'].max())
+    signal_max = float(data_period['Signal Line'].max())
+    
     macd_range = [
-        min(data_period['MACD'].min(), data_period['Signal Line'].min()) * 1.05,
-        max(data_period['MACD'].max(), data_period['Signal Line'].max()) * 1.05
+        min(macd_min, signal_min) * 1.05,
+        max(macd_max, signal_max) * 1.05
     ]
+else:
+    macd_range = [0, 0]
+
+
+# Rest of the plotting code remains the same...
 
 # Create subplots
 subplot_titles = ['Price']
@@ -385,47 +429,78 @@ if add_macd_plot:
 if risk_free_rate is not None and add_sharpe:
     subplot_titles.append('Sharpe Ratio')
 
+rows = 1 + add_rsi_plot + add_macd_plot + (add_sharpe if risk_free_rate is not None else 0)
+
 fig = make_subplots(rows=rows, cols=1, shared_xaxes=True,
                     vertical_spacing=0.15,
                     row_heights=[0.5] + [0.25] * (rows - 1),
                     subplot_titles=subplot_titles)
 
-# Add price candlestick trace
-fig.add_trace(go.Candlestick(x=data_period.index,
-                             open=data_period['Open'],
-                             high=data_period['High'],
-                             low=data_period['Low'],
-                             close=data_period['Close'],
-                             name='Candlesticks'), row=1, col=1)
+# Add candlestick chart
+if not data_period.empty:
+    fig.add_trace(go.Candlestick(x=data_period.index,
+                                open=data_period['Open'],
+                                high=data_period['High'],
+                                low=data_period['Low'],
+                                close=data_period['Close'],
+                                name='Candlesticks'), row=1, col=1)
 
-# Add selected EMA traces
-for period in selected_emas:
-    fig.add_trace(go.Scatter(x=data_period.index, y=data_period[f'EMA_{period}'], 
-                              mode='lines', name=f'EMA {period}'), row=1, col=1)
+    # Add selected EMA traces
+    for period in selected_emas:
+        if f'EMA_{period}' in data_period.columns:
+            fig.add_trace(go.Scatter(x=data_period.index, 
+                                   y=data_period[f'EMA_{period}'],
+                                   mode='lines', 
+                                   name=f'EMA {period}'), row=1, col=1)
 
-fig.update_yaxes(title_text='Price', row=1, col=1, range=price_range)
+# Update price axis with safety check
+if not pd.isna(price_range[0]) and not pd.isna(price_range[1]):
+    fig.update_yaxes(title_text='Price', row=1, col=1, range=price_range)
+else:
+    fig.update_yaxes(title_text='Price', row=1, col=1)
+
+# Initialize current_row
+current_row = 2
 
 # Add RSI trace
-if add_rsi_plot:
-    fig.add_trace(go.Scatter(x=data_period.index, y=data_period['RSI'],
-                             mode='lines', name='RSI'), row=2, col=1)
-    fig.add_hline(y=70, line=dict(color='red', dash='dash'), row=2, col=1)
-    fig.add_hline(y=30, line=dict(color='green', dash='dash'), row=2, col=1)
-    fig.update_yaxes(title_text='RSI', range=rsi_range, row=2, col=1)
+if add_rsi_plot and not data_period.empty and 'RSI' in data_period.columns:
+    fig.add_trace(go.Scatter(x=data_period.index, 
+                            y=data_period['RSI'],
+                            mode='lines', 
+                            name='RSI'), row=current_row, col=1)
+    fig.add_hline(y=70, line=dict(color='red', dash='dash'), row=current_row, col=1)
+    fig.add_hline(y=30, line=dict(color='green', dash='dash'), row=current_row, col=1)
+    fig.update_yaxes(title_text='RSI', range=rsi_range, row=current_row, col=1)
+    current_row += 1
 
 # Add MACD traces
-if add_macd_plot:
-    fig.add_trace(go.Scatter(x=data_period.index, y=data_period['MACD'], mode='lines', name='MACD'), row=3, col=1)
-    fig.add_trace(go.Scatter(x=data_period.index, y=data_period['Signal Line'], mode='lines', name='Signal Line'), row=3, col=1)
-    fig.update_yaxes(title_text='MACD', row=3, col=1, range=macd_range)
+if add_macd_plot and not data_period.empty and 'MACD' in data_period.columns:
+    fig.add_trace(go.Scatter(x=data_period.index, 
+                            y=data_period['MACD'],
+                            mode='lines', 
+                            name='MACD'), row=current_row, col=1)
+    fig.add_trace(go.Scatter(x=data_period.index, 
+                            y=data_period['Signal Line'],
+                            mode='lines', 
+                            name='Signal Line'), row=current_row, col=1)
+    fig.update_yaxes(title_text='MACD', row=current_row, col=1, range=macd_range)
+    current_row += 1
 
 # Add Sharpe ratio trace
-if risk_free_rate is not None and add_sharpe:
-    fig.add_trace(go.Scatter(x=data_period.index, y=data_period['Sharpe Ratio'], mode='lines', name='Sharpe Ratio'), row=rows, col=1)
-    fig.update_yaxes(title_text='Sharpe Ratio', row=rows, col=1)
+if risk_free_rate is not None and add_sharpe and 'Sharpe Ratio' in data_period.columns:
+    sharpe_range = calculate_custom_range(data_period, 'Sharpe Ratio')
+    fig.add_trace(go.Scatter(x=data_period.index, 
+                            y=data_period['Sharpe Ratio'],
+                            mode='lines', 
+                            name='Sharpe Ratio'), row=current_row, col=1)
+    fig.update_yaxes(title_text='Sharpe Ratio', row=current_row, col=1, range=sharpe_range)
 
 # Final layout adjustments
-fig.update_layout(height=800, title=f"{ticker} Stock Price with Indicators", xaxis_rangeslider_visible=False)
+fig.update_layout(height=800, 
+                 title=f"{ticker} Stock Price with Indicators",
+                 xaxis_rangeslider_visible=False)
+
+# Display the plot
 st.plotly_chart(fig)
 
 # Sidebar for news feed

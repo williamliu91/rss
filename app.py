@@ -3,6 +3,7 @@ import stock
 import crypto
 import forex
 import stock_news_page  # Import the stock news page function
+import paper_trading  # Import the paper trading module
 
 # Set the page layout to wide to accommodate the content better
 st.set_page_config(layout="wide")
@@ -22,3 +23,5 @@ elif page == "Forex Exchange":
     forex.app()
 elif page == "Stock News":
     stock_news_page.app()  # Call the stock news page function
+elif page == "Paper Trading":
+    paper_trading.app()  # Call the paper trading page function
